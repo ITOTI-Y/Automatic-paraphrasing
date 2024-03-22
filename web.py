@@ -1,30 +1,28 @@
 import streamlit as st
+from utils import * 
 from deeplx import *
+
+OPTIONS = ['gpt-3.5-turbo','gpt-4-turbo-preview','claude-3-haiku','claude-3-sonnet','claude-3-opus']
+
+st.set_page_config(layout='wide')
 st.title('论文润色降重')
 
-text = st.text_area('输入要降重的文本：',height=200)
-token = st.text_input('输入密钥')
-model_selectbox = st.selectbox('选择模型',['gpt-3.5-turbo','gpt-4-turbo-preview','claude-3-haiku','claude-3-sonnet','claude-3-opus'])
-model_input = st.text_input('自定义模型',value= None)
+st.sidebar.title('提示文本')
+prompt = st.sidebar.text_area('提示文本',value=None,height=300)
 
-model = model_input or model_selectbox
+if prompt is None:
+    prompt = f"你是一位精通各领域论文写作的院士级教授，为了论文的降重需求，你将根据我提供的文本进行改写和修正，\
+        改写后的文本应该符合原文意思、具有逻辑性和阅读流畅且不应与原文有过多重复，文本中出现的人名、单位和专业术语不需要进行翻译，\
+        你会使用中文回复我改写后的文本内容，（永远不要对文本进行解释、扩写和提供建议！）"
 
-prompt = st.sidebar.text_input('覆写提示', value= None)
+windows = st.number_input('同时进行模型数',value=1)
 
-if 'result' not in st.session_state:
-    st.session_state.result = None
+input_text = Text_area(label='输入文本',label_visibility='visible').run()
+token_text = Input_area(label='用户密钥',label_visibility='visible').run()
 
-if st.button('开始降重'):
-    st.session_state.result = ai_polishing(text,token, model = model, prompt = prompt)
+result_areas = [Text_area(label=f'模型输出{i}') for i in range(windows)]
+select_boxs = [Select_box(label=f'模型选择{i}',options=OPTIONS,default=OPTIONS[0]) for i in range(windows)]
+object_dict = {i:{'text':result_areas[i],'select':select_boxs[i]} for i in range(windows)}
 
-if st.session_state.result:
-    lines1 = len(st.session_state.result) // 40 + 1
-    height1 = min(max(lines1 * 28, 150),500)
-    st.session_state.result = st.text_area('润色结果:',value=st.session_state.result,height=height1)
 
-if st.checkbox('自动AI转翻译'):
-    if st.session_state.result:
-        respond = double_translate(st.session_state.result)
-        lines2 = len(respond[1]) // 40 + 1
-        height2 = min(max(lines2 * 28, 150),500)
-        st.text_area('翻译结果:',value=respond[1],height=height2)
+Columns(object_dict,text=input_text,token = token_text, windows=windows, prompt=prompt).run()
