@@ -88,15 +88,16 @@ class Close_Plant:
         return self._build_transfer_function()
     
 class Simulation:
-    def __init__(self, plant, t_final=450):
+    def __init__(self, plant,t_final=450):
         self.plant = plant()
         self.t_final = t_final
     
     def _build_transfer_function(self):
         Hyr = self.plant
         t = np.linspace(0, self.t_final, 1000)
-        t, y = ct.step_response(Hyr,t)
-        return t, y
+        t, y = ct.step_response(Hyr, T=t)
+        s = ct.step_info(y,T=t) # 获取阶跃响应的性能数据
+        return t, y, s
     
     def __repr__(self):
         return f'plant={self.plant}'
@@ -104,20 +105,20 @@ class Simulation:
     def __call__(self):
         return self._build_transfer_function()
 
-def main(kp, ki, kd, N, t_final=450):
+def main(kp, ki, kd, N):
     pid = PID(kp, ki, kd, N)
     output = Output()
     delay = Delay()
     plant = Close_Plant(pid, output, delay)
     simulation = Simulation(plant)
-    t, y = simulation()
-    return t, y
+    t, y, s = simulation()
+    return t, y, s
 
 if __name__ == '__main__':
     kp = 19
-    ki = 0.5
-    kd = 12
-    N = 8
-    t, y = main(kp, ki, kd, N)
+    ki = 1.2
+    kd = 13
+    N = 5.08
+    t, y, s = main(kp, ki, kd, N)
     plt.plot(t, y)
     plt.show()
